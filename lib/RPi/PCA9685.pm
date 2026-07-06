@@ -29,6 +29,57 @@ use constant {
 };
 
 # Public methods
+sub new {
+    my ($class, %args) = @_;
+
+    my $self = bless {}, $class;
+
+    if (defined $args{device} && ref $args{device}){
+        croak "device param must be a string, eg. '/dev/i2c-1'";
+    }
+
+    $self->{device} = defined $args{device} ? $args{device} : '/dev/i2c-1';
+
+    if (defined $args{addr} && ($args{addr} !~ /^\d+$/ || $args{addr} < 0x03 || $args{addr} > 0x77)){
+        croak "addr param must be an integer between 0x03 and 0x77";
+    }
+
+    $self->{addr} = defined $args{addr} ? $args{addr} : 0x40;
+
+    $self->{osc_hz} = OSC_HZ;
+    $self->{prescale} = 0x1E; # Chip default until _chip_init() reads the real one
+
+    my $i2c = eval { RPi::I2C->new($self->{addr}, $self->{device}); };
+
+    if (! defined $i2c){
+        croak sprintf(
+            "new() failed to open %s at addr 0x%02X: %s",
+            $self->{device},
+            $self->{addr},
+            defined $@ && $@ ne '' ? $@ : 'unknown error',
+        );
+    }
+
+    $self->{i2c} = $i2c;
+
+    $self->_chip_init;
+
+    # osc must be set before freq, as it's used in the prescaler math
+
+    if (defined $args{osc}){
+        $self->osc_freq($args{osc});
+    }
+
+    if (defined $args{freq}){
+        $self->freq($args{freq});
+    }
+
+    if (defined $args{invert}){
+        $self->invert($args{invert});
+    }
+
+    return $self;
+}
 
 sub all_off {
     my ($self) = @_;
@@ -42,10 +93,6 @@ sub close {
     $self->{i2c} = undef;
 
     return 0;
-}
-sub DESTROY {
-    my ($self) = @_;
-    $self->close;
 }
 sub duty {
     my ($self, $channel, $duty) = @_;
@@ -143,57 +190,6 @@ sub invert {
     $self->_reg_write(REG_MODE2, $mode2);
 
     return 0;
-}
-sub new {
-    my ($class, %args) = @_;
-
-    my $self = bless {}, $class;
-
-    if (defined $args{device} && ref $args{device}){
-        croak "device param must be a string, eg. '/dev/i2c-1'";
-    }
-
-    $self->{device} = defined $args{device} ? $args{device} : '/dev/i2c-1';
-
-    if (defined $args{addr} && ($args{addr} !~ /^\d+$/ || $args{addr} < 0x03 || $args{addr} > 0x77)){
-        croak "addr param must be an integer between 0x03 and 0x77";
-    }
-
-    $self->{addr} = defined $args{addr} ? $args{addr} : 0x40;
-
-    $self->{osc_hz} = OSC_HZ;
-    $self->{prescale} = 0x1E; # Chip default until _chip_init() reads the real one
-
-    my $i2c = eval { RPi::I2C->new($self->{addr}, $self->{device}); };
-
-    if (! defined $i2c){
-        croak sprintf(
-            "new() failed to open %s at addr 0x%02X: %s",
-            $self->{device},
-            $self->{addr},
-            defined $@ && $@ ne '' ? $@ : 'unknown error',
-        );
-    }
-
-    $self->{i2c} = $i2c;
-
-    $self->_chip_init;
-
-    # osc must be set before freq, as it's used in the prescaler math
-
-    if (defined $args{osc}){
-        $self->osc_freq($args{osc});
-    }
-
-    if (defined $args{freq}){
-        $self->freq($args{freq});
-    }
-
-    if (defined $args{invert}){
-        $self->invert($args{invert});
-    }
-
-    return $self;
 }
 sub osc_freq {
     my ($self, $hz) = @_;
@@ -359,6 +355,11 @@ sub wake {
     return 0;
 }
 
+sub DESTROY {
+    my ($self) = @_;
+    $self->close;
+}
+
 # Private methods
 
 sub _chip_init {
@@ -426,7 +427,8 @@ sub _reg_write {
 
     return 0;
 }
-sub _vim{};
+
+sub _vim{}; # Fold placeholder
 
 1;
 __END__
