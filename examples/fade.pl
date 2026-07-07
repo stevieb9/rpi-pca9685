@@ -7,14 +7,14 @@
 use warnings;
 use strict;
 
-use RPi::PCA9685;
+use RPi::PWM::PCA9685;
 
 my $channel = defined $ARGV[0] ? $ARGV[0] : 0;
 
 my $running = 1;
 $SIG{INT} = sub { $running = 0 };
 
-my $pca = RPi::PCA9685->new(freq => 1000);
+my $pca = RPi::PWM::PCA9685->new(freq => 1000);
 
 printf("fading channel %d at %.1f Hz, Ctrl-C to quit\n", $channel, $pca->freq);
 

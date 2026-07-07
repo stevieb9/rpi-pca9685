@@ -10,7 +10,7 @@
 use warnings;
 use strict;
 
-use RPi::PCA9685;
+use RPi::PWM::PCA9685;
 
 my $channel = defined $ARGV[0] ? $ARGV[0] : 0;
 my $min_us  = defined $ARGV[1] ? $ARGV[1] : 1000;
@@ -19,7 +19,7 @@ my $max_us  = defined $ARGV[2] ? $ARGV[2] : 2000;
 my $running = 1;
 $SIG{INT} = sub { $running = 0 };
 
-my $pca = RPi::PCA9685->new(freq => 50);
+my $pca = RPi::PWM::PCA9685->new(freq => 50);
 
 printf(
     "sweeping channel %d, %d-%d us, Ctrl-C to quit\n",

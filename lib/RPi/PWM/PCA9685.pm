@@ -1,4 +1,4 @@
-package RPi::PCA9685;
+package RPi::PWM::PCA9685;
 
 use strict;
 use warnings;
@@ -435,21 +435,21 @@ __END__
 
 =head1 NAME
 
-RPi::PCA9685 - Interface to the NXP PCA9685 16-channel, 12-bit PWM/servo
+RPi::PWM::PCA9685 - Interface to the NXP PCA9685 16-channel, 12-bit PWM/servo
 controller over the I2C bus
 
 =for html
-<a href="https://github.com/stevieb9/rpi-pca9685/actions"><img src="https://github.com/stevieb9/rpi-pca9685/workflows/CI/badge.svg"/></a>
-<a href='https://coveralls.io/github/stevieb9/rpi-pca9685?branch=main'><img src='https://coveralls.io/repos/stevieb9/rpi-pca9685/badge.svg?branch=main&service=github' alt='Coverage Status' /></a>
+<a href="https://github.com/stevieb9/rpi-pwm-pca9685/actions"><img src="https://github.com/stevieb9/rpi-pwm-pca9685/workflows/CI/badge.svg"/></a>
+<a href='https://coveralls.io/github/stevieb9/rpi-pwm-pca9685?branch=main'><img src='https://coveralls.io/repos/stevieb9/rpi-pwm-pca9685/badge.svg?branch=main&service=github' alt='Coverage Status' /></a>
 
 
 =head1 SYNOPSIS
 
-    use RPi::PCA9685;
+    use RPi::PWM::PCA9685;
 
     # LEDs / general PWM
 
-    my $pca = RPi::PCA9685->new(freq => 1000);
+    my $pca = RPi::PWM::PCA9685->new(freq => 1000);
 
     $pca->duty(0, 2048);        # channel 0 at 50%
     $pca->duty_pct(1, 12.5);    # channel 1 at 12.5%
@@ -459,7 +459,7 @@ controller over the I2C bus
 
     # Servos (the whole chip must run at 50 Hz)
 
-    my $servo = RPi::PCA9685->new(freq => 50);
+    my $servo = RPi::PWM::PCA9685->new(freq => 50);
 
     $servo->servo_us(0, 1500);  # centre
     $servo->servo_us(0, 2000);  # one end
@@ -488,8 +488,8 @@ enables register auto-increment automatically.
 
 =head2 new
 
-Instantiates a new L<RPi::PCA9685> object, opens the I2C bus, verifies the
-chip responds, and wakes it up.
+Instantiates a new L<RPi::PWM::PCA9685> object, opens the I2C bus, verifies
+the chip responds, and wakes it up.
 
 I<Parameters>:
 
@@ -520,8 +520,8 @@ if you've measured it. See L</osc_freq>.
 
 I<Optional, Bool>: Invert the output logic of all channels. See L</invert>.
 
-I<Returns>: The L<RPi::PCA9685> object. Croaks if the bus can't be opened or
-the chip doesn't respond.
+I<Returns>: The L<RPi::PWM::PCA9685> object. Croaks if the bus can't be
+opened or the chip doesn't respond.
 
 =head2 freq
 
@@ -928,7 +928,7 @@ their weights:
 
 Match the straps with the C<addr> param:
 
-    my $pca = RPi::PCA9685->new(addr => 0x45);
+    my $pca = RPi::PWM::PCA9685->new(addr => 0x45);
 
 Two straps to avoid: C<110000> (C<0x70>) collides with the all-call
 address every PCA9685 answers by default (see L</MULTIPLE DEVICES>), and
@@ -943,18 +943,21 @@ address pins, so up to 62 chips can share the bus. Since all 16 channels of
 one chip share a frequency, running servos (50 Hz) alongside flicker-free
 LEDs (1 kHz) means using two chips:
 
-    my $leds   = RPi::PCA9685->new(addr => 0x40, freq => 1000);
-    my $servos = RPi::PCA9685->new(addr => 0x41, freq => 50);
+    my $leds   = RPi::PWM::PCA9685->new(addr => 0x40, freq => 1000);
+    my $servos = RPi::PWM::PCA9685->new(addr => 0x41, freq => 50);
 
 Note that every PCA9685 also answers the all-call address C<0x70> by
 default, and L</reset> resets all of them at once.
 
+=head2 DATASHEET
+
+The NXP PCA9685 datasheet (Rev. 4) is distributed with this software as
+F<docs/datasheet/PCA9685.pdf>. It covers the register map, the PWM timing,
+and the I2C framing this module drives.
+
 =head1 SEE ALSO
 
 L<RPi::I2C>, which provides the I2C transport for this distribution.
-
-The PCA9685 datasheet:
-L<https://www.nxp.com/docs/en/data-sheet/PCA9685.pdf>
 
 =head1 AUTHOR
 

@@ -1,4 +1,4 @@
-Revision history for RPi-PCA9685
+Revision history for RPi-PWM-PCA9685
 
 0.01 UNREL
     - Auto generated distribution with Dist::Mgr
@@ -8,3 +8,9 @@ Revision history for RPi-PCA9685
     - Added the ON THE WIRE POD section, with I2C bus transaction diagrams
     - Added the I2C ADDRESSING POD section
     - Limited CI to Linux runners; RPi::I2C is a Linux-only XS dependency
+    - Bundled the datasheet as docs/datasheet/PCA9685.pdf and added a
+      DATASHEET POD section pointing to it; moved the datasheet reference
+      out of SEE ALSO (no longer a web URL)
+    - Renamed the distribution from RPi-PCA9685 to RPi-PWM-PCA9685, and the
+      module namespace from RPi::PCA9685 to RPi::PWM::PCA9685 (repo:
+      rpi-pwm-pca9685), before any CPAN release

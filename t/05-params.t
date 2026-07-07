@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Test::More;
 
-use RPi::PCA9685;
+use RPi::PWM::PCA9685;
 
 # These exercise the parameter validation and failure paths only, so
 # they run fine on machines with no PCA9685 (or no I2C bus) attached
@@ -12,14 +12,14 @@ use RPi::PCA9685;
 plan tests => 12;
 
 my $ok = eval {
-    RPi::PCA9685->new(addr => 999999);
+    RPi::PWM::PCA9685->new(addr => 999999);
     1;
 };
 is $ok, undef, "new() dies with an out of range addr param";
 like $@, qr/addr param/, "...with a relevant error message";
 
 $ok = eval {
-    RPi::PCA9685->new(device => '/dev/nonexistent-i2c');
+    RPi::PWM::PCA9685->new(device => '/dev/nonexistent-i2c');
     1;
 };
 is $ok, undef, "new() dies if the i2c device can't be opened";
@@ -28,7 +28,7 @@ like $@, qr/failed to open/, "...with the underlying error message";
 # A device-less object gets us through the Perl-level validation
 # without ever touching the XS layer
 
-my $fake = bless {}, 'RPi::PCA9685';
+my $fake = bless {}, 'RPi::PWM::PCA9685';
 
 eval { $fake->duty(99, 0); };
 like $@, qr/\$channel param/, "duty() validates the channel";

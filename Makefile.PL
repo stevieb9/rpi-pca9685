@@ -4,10 +4,10 @@ use warnings;
 use ExtUtils::MakeMaker;
 
 my %WriteMakefileArgs = (
-    NAME             => 'RPi::PCA9685',
+    NAME             => 'RPi::PWM::PCA9685',
     AUTHOR           => q{Steve Bertrand <steveb@cpan.org>},
-    VERSION_FROM     => 'lib/RPi/PCA9685.pm',
-    ABSTRACT_FROM    => 'lib/RPi/PCA9685.pm',
+    VERSION_FROM     => 'lib/RPi/PWM/PCA9685.pm',
+    ABSTRACT_FROM    => 'lib/RPi/PWM/PCA9685.pm',
     LICENSE          => 'artistic_2',
     PL_FILES         => {},
     MIN_PERL_VERSION => '5.006',
@@ -16,11 +16,11 @@ my %WriteMakefileArgs = (
         resources   => {
             repository => {
                 type => 'git',
-                url => 'https://github.com/stevieb9/rpi-pca9685.git',
-                web => 'https://github.com/stevieb9/rpi-pca9685',
+                url => 'https://github.com/stevieb9/rpi-pwm-pca9685.git',
+                web => 'https://github.com/stevieb9/rpi-pwm-pca9685',
             },
             bugtracker => {
-                web => 'https://github.com/stevieb9/rpi-pca9685/issues',
+                web => 'https://github.com/stevieb9/rpi-pwm-pca9685/issues',
             },
         },
     },
@@ -34,7 +34,7 @@ my %WriteMakefileArgs = (
         'RPi::I2C' => 3.1801,
     },
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
-    clean => { FILES => 'RPi-PCA9685-*' },
+    clean => { FILES => 'RPi-PWM-PCA9685-*' },
 );
 
 # Compatibility with old versions of ExtUtils::MakeMaker

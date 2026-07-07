@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use Test::More;
 
-use RPi::PCA9685;
+use RPi::PWM::PCA9685;
 
 # Swap the RPi::I2C transport for an in-memory register file, so the
 # chip logic (prescaler math, register sequencing, servo conversion)
@@ -20,9 +20,9 @@ plan tests => 20;
     };
 }
 
-my $pca = RPi::PCA9685->new;
+my $pca = RPi::PWM::PCA9685->new;
 
-isa_ok $pca, 'RPi::PCA9685';
+isa_ok $pca, 'RPi::PWM::PCA9685';
 
 # new() wakes the chip (SLEEP off) and enables auto-increment; the
 # mock powers up as the real chip does, MODE1 = 0x11
