@@ -1,6 +1,6 @@
 Revision history for RPi-PWM-PCA9685
 
-0.01 UNREL
+0.01    2026-07-15
     - Auto generated distribution with Dist::Mgr
     - Added the OO Perl interface; pure Perl, with the I2C transport
       provided by RPi::I2C
