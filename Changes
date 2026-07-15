@@ -1,7 +1,12 @@
 Revision history for RPi-PWM-PCA9685
 
 0.02 UNREL
-    -
+    - Fixed a malformed MANIFEST.SKIP entry so .claude/ is skipped
+    - Documented tying OE to GND (or a spare GPIO as a blanking line) in the
+      DEVICE SPECIFICS wiring notes
+    - Added ext_clock(), which switches the timebase to an external clock on
+      the EXTCLK pin (up to 50 MHz) and tracks it in the prescaler math;
+      reset() undoes the sticky EXTCLK bit and reverts to the internal 25 MHz
 
 0.01    2026-07-15
     - Auto generated distribution with Dist::Mgr

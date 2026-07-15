@@ -23,6 +23,7 @@ use constant {
     REG_ALL_LED_ON_L => 0xFA,
     REG_PRE_SCALE    => 0xFE,
     MODE1_RESTART    => 0x80,
+    MODE1_EXTCLK     => 0x40,
     MODE1_AI         => 0x20,
     MODE1_SLEEP      => 0x10,
     MODE2_INVRT      => 0x10,
@@ -129,6 +130,32 @@ sub duty_pct {
     }
 
     return $self->duty($channel, int($pct / 100 * PWM_MAX + 0.5));
+}
+sub ext_clock {
+    my ($self, $hz) = @_;
+
+    if (! defined $hz || $hz !~ /^\d+(?:\.\d+)?$/ || $hz == 0 || $hz > 50_000_000){
+        croak "ext_clock() requires the \$hz param, the clock speed in Hz, up to 50000000";
+    }
+
+    # Feed the prescaler and pulse-width math the new timebase
+
+    $self->osc_freq($hz);
+
+    # The EXTCLK bit only takes hold while asleep, and only when SLEEP and
+    # EXTCLK are written together. It's a sticky bit - a power cycle or
+    # reset() (a SWRST) is the only way back to the internal oscillator
+
+    my $mode1 = ($self->_reg_read(REG_MODE1) & ~MODE1_RESTART) & 0xFF;
+
+    $self->_reg_write(REG_MODE1, $mode1 | MODE1_SLEEP);
+    $self->_reg_write(REG_MODE1, $mode1 | MODE1_SLEEP | MODE1_EXTCLK);
+
+    $self->{ext_clock} = 1;
+
+    $self->wake;
+
+    return 0;
 }
 sub freq {
     my ($self, $freq) = @_;
@@ -296,6 +323,14 @@ sub reset {
     select(undef, undef, undef, OSC_STAB);
 
     $self->_chip_init;
+
+    # SWRST clears the sticky EXTCLK bit, so the chip is back on its
+    # internal oscillator; drop the external-clock assumption to match
+
+    if ($self->{ext_clock}){
+        $self->{osc_hz} = OSC_HZ;
+        $self->{ext_clock} = 0;
+    }
 
     return 0;
 }
@@ -782,6 +817,37 @@ I<Optional, Number>: The true oscillator speed in Hz.
 
 I<Returns>: The currently assumed oscillator speed in Hz.
 
+=head2 ext_clock
+
+Switches the chip's timebase from its internal 25 MHz oscillator to an
+external clock fed into the EXTCLK pin, and tells the prescaler and pulse
+width math the new speed (as L</osc_freq> would).
+
+Use it to run several chips from one shared clock so their PWM cycles stay
+locked together, for a steadier timebase than the internal oscillator (which
+drifts a few percent with temperature and voltage), or to reach higher PWM
+frequencies - the external clock may run up to 50 MHz, against 25 MHz
+internally.
+
+Set your PWM frequency with L</freq> B<after> calling this. Until you do, the
+chip keeps its previous prescaler value, now interpreted against the new
+clock, so the output frequency will be off.
+
+The EXTCLK selection is a hardware B<sticky bit>: once set, only a power cycle
+or a software L</reset> can return the chip to its internal oscillator.
+L</reset> also drops this module's external-clock assumption back to the
+nominal 25 MHz. Supplying the actual clock signal on the pin is up to your
+hardware; if none is present, the PWM has no timebase and stops.
+
+I<Parameters>:
+
+    $hz
+
+I<Mandatory, Number>: The external clock speed in Hz, C<1>-C<50000000>
+(50 MHz) - the frequency present on the EXTCLK pin.
+
+I<Returns>: C<0> upon success.
+
 =head2 sleep
 
 Puts the chip into low-power sleep - the oscillator stops and all outputs
@@ -799,7 +865,11 @@ Takes no parameters. I<Returns>: C<0> upon success.
 =head2 reset
 
 Software-resets the chip to its power-on defaults, then re-initialises it
-(auto-increment on, awake).
+(auto-increment on, awake, drive type reapplied).
+
+If L</ext_clock> had switched the chip to an external clock, this clears it -
+a software reset is one of the only two ways to undo the sticky EXTCLK bit -
+and the module reverts to assuming the internal 25 MHz oscillator.
 
 B<WARNING>: this is the I2C "general call" reset - it resets B<every>
 PCA9685 on the bus, not just this one.
@@ -840,6 +910,7 @@ Takes no parameters. I<Returns>: C<0>.
     - 16 outputs, 12-bit (4096 step) duty resolution each
     - One shared PWM frequency, 24-1526 Hz
     - Internal 25 MHz oscillator; no crystal required
+    - EXTCLK pin accepts an external clock (up to 50 MHz); see ext_clock()
     - Powers up asleep; new() handles the wake-up
     - Runs at 2.3-5.5V; the Pi's 3.3v is fine
     - Each output sinks up to 25 mA, sources up to 10 mA
@@ -847,7 +918,10 @@ Takes no parameters. I<Returns>: C<0>.
 
 Wiring to the Pi: VCC to 3.3v, SDA to GPIO 2 (pin 3), SCL to GPIO 3 (pin 5),
 GND to ground. If the board has a V+ LED/servo supply input, feed it from an
-external 5v supply, not the Pi. Verify the chip answers with
+external 5v supply, not the Pi. Tie OE (active low) to GND so the outputs
+are always enabled - it needs a defined level, so don't leave it floating.
+Wire it to a spare GPIO instead if you want a hardware blanking line to kill
+all 16 outputs at once, independently of I2C. Verify the chip answers with
 C<i2cdetect -y 1> - you'll see the chip at C<0x40> and its all-call alias at
 C<0x70>.
 

@@ -9,7 +9,7 @@ use RPi::PWM::PCA9685;
 # These exercise the parameter validation and failure paths only, so
 # they run fine on machines with no PCA9685 (or no I2C bus) attached
 
-plan tests => 14;
+plan tests => 15;
 
 my $ok = eval {
     RPi::PWM::PCA9685->new(addr => 999999);
@@ -48,6 +48,9 @@ like $@, qr/\$pct param/, "duty_pct() validates the percent";
 
 eval { $fake->freq('abc'); };
 like $@, qr/\$freq param/, "freq() validates the frequency";
+
+eval { $fake->ext_clock(60_000_000); };
+like $@, qr/\$hz param/, "ext_clock() validates the clock speed";
 
 eval { $fake->pwm(0, 99999, 0); };
 like $@, qr/\$on param/, "pwm() validates the on ticks";
