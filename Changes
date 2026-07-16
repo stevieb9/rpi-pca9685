@@ -14,6 +14,8 @@ Revision history for RPi-PWM-PCA9685
     - Added status(), returning a hashref snapshot of the chip's configuration
       (addr, device, drive, ext_clock, freq, inverted, osc_hz, prescale,
       sleeping) for logging, status displays and tests
+    - Added off(), which hard-offs every channel and then sleeps the chip
+      (all_off() plus sleep()), for parking it dark and idle at program exit
 
 0.01    2026-07-15
     - Auto generated distribution with Dist::Mgr

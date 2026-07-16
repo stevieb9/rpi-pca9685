@@ -250,6 +250,18 @@ sub inverted {
 
     return $self->_reg_read(REG_MODE2) & MODE2_INVRT ? 1 : 0;
 }
+sub off {
+    my ($self) = @_;
+
+    # Every channel hard off, then the oscillator stopped - the chip left dark
+    # and idle in one call. The outputs otherwise keep running in hardware
+    # after the process exits; a later new() wakes the chip again
+
+    $self->all_off;
+    $self->sleep;
+
+    return 0;
+}
 sub osc_freq {
     my ($self, $hz) = @_;
 
@@ -820,6 +832,19 @@ Puts every channel hard off in a single call.
 
 Takes no parameters. I<Returns>: C<0> upon success.
 
+=head2 off
+
+Turns every channel hard off and then puts the chip to sleep - a one-call
+"park it safely": no output is driven and the oscillator is stopped.
+Equivalent to L</all_off> followed by L</sleep>.
+
+Handy at the end of a program or test run: the chip generates its PWM in
+hardware and keeps driving the outputs after the host process exits (see
+L</close>), so if nothing turns them off they stay at their last duty
+indefinitely. A later L</new> wakes the chip again.
+
+Takes no parameters. I<Returns>: C<0> upon success.
+
 =head2 invert
 
 Inverts the output logic of all 16 channels.
@@ -953,8 +978,8 @@ I<Returns>: The byte read, or the byte written.
 =head2 close
 
 Closes the I2C connection and invalidates the object. Called automatically
-on C<DESTROY>. The chip's outputs keep running - call L</all_off> first if
-you want everything off.
+on C<DESTROY>. The chip's outputs keep running - call L</all_off> (or L</off>
+to also stop the oscillator) first if you want everything off.
 
 Takes no parameters. I<Returns>: C<0>.
 
