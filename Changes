@@ -1,7 +1,7 @@
 Revision history for RPi-PWM-PCA9685
 
 0.02 UNREL
-    - Fixed a malformed MANIFEST.SKIP entry so .claude/ is skipped
+    - Fixed a malformed MANIFEST.SKIP entry
     - Documented tying OE to GND (or a spare GPIO as a blanking line) in the
       DEVICE SPECIFICS wiring notes
     - Added ext_clock(), which switches the timebase to an external clock on
