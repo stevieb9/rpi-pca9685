@@ -621,6 +621,13 @@ controller over the I2C bus
     $servo->servo_us(0, 2000);  # one end
     $servo->servo_us(0, 0);     # stop the pulses; servo goes limp
 
+    # Powering down
+
+    $pca->sleep;                # Stop the oscillator; outputs freeze, config kept
+    $pca->wake;                 # Restart the oscillator
+
+    $pca->off;                  # all_off() then sleep() - park the chip dark and idle
+
 =head1 DESCRIPTION
 
 Interface to the NXP PCA9685 16-channel, 12-bit PWM controller over the I2C
