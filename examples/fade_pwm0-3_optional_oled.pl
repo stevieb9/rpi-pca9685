@@ -13,11 +13,13 @@
 # arrives, a fresh random target and speed are chosen, so the four LEDs
 # drift independently and never settle into a repeating pattern.
 #
+# The live PCA9685 status (frequency, drive mode, and a per-channel duty bar
+# labelled by LED colour) is drawn in place on the CLI as the LEDs breathe.
+#
 # If the sibling repo ~/repos/rpi-oled-ssd1306 is present and its module
-# builds, the live PCA9685 status (frequency, drive mode, and a per-channel
-# duty bar labelled by LED colour) is mirrored onto a 128x64 SSD1306 OLED as
-# the LEDs breathe. The OLED is entirely optional - if it's missing or
-# unusable, the fade runs exactly as before.
+# builds, the same status is also mirrored onto a 128x64 SSD1306 OLED. The
+# OLED is entirely optional - if it's missing or unusable, the fade runs with
+# just the CLI display.
 #
 # Usage: perl fade3.pl
 
@@ -49,11 +51,15 @@ my $status = $pca->status;
 my $oled = oled_init();
 
 printf(
-    "fading channels %s at %.1f Hz%s, Ctrl-C to quit\n",
+    "fading channels %s at %.1f Hz%s, Ctrl-C to quit\n\n",
     join(', ', @channels),
     $status->{freq},
     $oled ? ', mirroring status to the OLED' : '',
 );
+
+# Set once the first CLI frame has been drawn, so later frames know to move
+# the cursor back up and redraw the block in place rather than scrolling.
+my $cli_drawn = 0;
 
 # Per-channel fade state: where each LED is now, where it's heading, and how
 # far it moves per tick. Seed every channel with a random target and speed.
@@ -62,8 +68,9 @@ my @target = map { random_target() } @channels;
 my @speed  = map { random_speed() }  @channels;
 
 # A full OLED frame takes ~90ms to push over I2C, far too slow to run every
-# 2ms fade tick, so the status is refreshed a few times a second at most
-my $last_oled = 0;
+# 2ms fade tick, so the status is refreshed a few times a second at most. The
+# CLI display shares the same cadence so both panels update in lockstep.
+my $last_refresh = 0;
 
 while ($running){
     for my $i (0 .. $#channels){
@@ -86,9 +93,10 @@ while ($running){
         $pca->duty($channels[$i], $duty[$i]);
     }
 
-    if ($oled && time - $last_oled >= 0.25){
-        oled_status($oled, \@colours, \@duty, $status);
-        $last_oled = time;
+    if (time - $last_refresh >= 0.25){
+        $cli_drawn = cli_status(\@colours, \@duty, $status, $cli_drawn);
+        oled_status($oled, \@colours, \@duty, $status) if $oled;
+        $last_refresh = time;
     }
 
     select(undef, undef, undef, 0.002);
@@ -107,6 +115,39 @@ print "\nall channels off\n";
 # A random brightness anywhere across the full duty range.
 sub random_target {
     return int(rand(PWM_MAX + 1));
+}
+
+# Paint one status frame on the CLI: the same header (PWM frequency, drive
+# mode and oscillator) and per-channel colour-labelled duty bars that the OLED
+# shows. Redrawn in place - once the first frame is down, the cursor is moved
+# back up over the block so each refresh overwrites the last without scrolling.
+# Returns a true "already drawn" flag for the caller to feed back in next tick.
+sub cli_status {
+    my ($labels, $duty, $status, $drawn) = @_;
+
+    my @lines;
+
+    push @lines, sprintf("PCA9685  %.0fHz", $status->{freq});
+    push @lines, sprintf("%s  osc %gMHz", $status->{drive}, $status->{osc_hz} / 1_000_000);
+    push @lines, "";
+
+    for my $i (0 .. $#$labels){
+        my $pct    = int($duty->[$i] / PWM_MAX * 100 + 0.5);
+        my $filled = int($pct / 10 + 0.5);
+        $filled = 10 if $filled > 10;
+        my $bar    = ('#' x $filled) . ('.' x (10 - $filled));
+
+        push @lines, sprintf("%s [%s]%3d%%", $labels->[$i], $bar, $pct);
+    }
+
+    # Step the cursor back up over the previous frame before repainting.
+    print "\033[", scalar(@lines), "A" if $drawn;
+
+    # "\033[K" clears each line to its end so a shorter bar can't leave stale
+    # characters behind from the frame underneath it.
+    print "\033[K", $_, "\n" for @lines;
+
+    return 1;
 }
 
 # Bring up the OLED from the sibling repo, or return undef if it isn't there
